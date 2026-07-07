@@ -16,6 +16,7 @@
     "test:generate": "brittle -r test/all.js test/*.js"
   },
   "devDependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "brittle": "^3.1.0",
     "lunte": "^1.3.0",
     "prettier": "^3.6.2",

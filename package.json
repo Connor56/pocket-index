@@ -1,7 +1,7 @@
 {
-  "name": "holepunch-module-template",
+  "name": "pocket-index",
   "version": "0.0.0",
-  "description": "Template for a Holepunch-style npm module",
+  "description": "Tiny browser-friendly search indexes for external documents.",
   "main": "index.js",
   "files": [
     "index.js",
@@ -23,12 +23,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/connor56/holepunch-module-template.git"
+    "url": "https://github.com/connor56/pocket-index.git"
   },
   "author": "Your Name",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/connor56/holepunch-module-template/issues"
+    "url": "https://github.com/connor56/pocket-index/issues"
   },
-  "homepage": "https://github.com/connor56/holepunch-module-template"
+  "homepage": "https://github.com/connor56/pocket-index",
+  "dependencies": {
+    "b4a": "^1.8.1"
+  }
 }

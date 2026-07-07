@@ -3,3 +3,4 @@ package-lock.json
 data*
 sandbox*
 sandbox.js
+*.cache

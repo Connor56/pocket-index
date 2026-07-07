@@ -18,7 +18,20 @@ test('add two vectors', (t) => {
   const vec2 = Float32Array.from([2, 0, -10])
   const expectedSum = Float32Array.from([3, -1, -5])
 
-  const sum = addVectors(vec1, vec2)
+  // Setup for fair timing
+  let sum = []
+  sum = addVectors(vec1, vec2, false)
+
+  const newArrayStart = performance.now()
+  sum = addVectors(vec1, vec2, false)
+  const newArrayTime = performance.now() - newArrayStart
 
   t.alike(sum, expectedSum)
+
+  const inplaceStart = performance.now()
+  sum = addVectors(vec1, vec2)
+  const inplaceTime = performance.now() - inplaceStart
+
+  t.alike(sum, expectedSum)
+  t.comment(`inplace time: ${inplaceTime}, newArrayTime: ${newArrayTime}`)
 })

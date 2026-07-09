@@ -10,8 +10,24 @@
 
   Add one small `test('...', async function (t) {})` block per behaviour.
 */
+
 const test = require('brittle')
-const { addVectors } = require('../lib/vector-index')
+const { addVectors, VectorIndex } = require('../lib/vector')
+const { pipeline, env } = require('@huggingface/transformers')
+
+let EXTRACTOR = null
+const MODEL_ID = 'onnx-community/all-MiniLM-L6-v2-ONNX'
+env.cacheDir = './.cache/transformers'
+
+async function getFeatureExtractor() {
+  if (!EXTRACTOR) {
+    EXTRACTOR = await pipeline('feature-extraction', MODEL_ID, {
+      dtype: 'fp16'
+    })
+  }
+
+  return EXTRACTOR
+}
 
 test('add two vectors', (t) => {
   const vec1 = Float32Array.from([1, -1, 5])
@@ -34,4 +50,23 @@ test('add two vectors', (t) => {
 
   t.alike(sum, expectedSum)
   t.comment(`inplace time: ${inplaceTime}, newArrayTime: ${newArrayTime}`)
+})
+
+test('add a document to index', async (t) => {
+  const documents = [
+    {
+      content: 'This is a document I wish to add to the index.',
+      id: 'test-1'
+    }
+  ]
+
+  const extractor = getFeatureExtractor()
+
+  const options = {
+    docs: documents,
+    extractor: extractor,
+    dimension: 384∫
+  }
+
+  const index = new VectorIndex((docs = documents))
 })

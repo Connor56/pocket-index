@@ -7,7 +7,7 @@ async function runTests() {
 
   test.pause()
 
-  await import('./vector-index.js')
+  await import('./vector.js')
 
   test.resume()
 }

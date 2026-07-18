@@ -22,7 +22,7 @@ env.cacheDir = './.cache/transformers'
 async function getFeatureExtractor() {
   if (!EXTRACTOR) {
     EXTRACTOR = await pipeline('feature-extraction', MODEL_ID, {
-      dtype: 'fp16'
+      dtype: 'fp32'
     })
   }
 
@@ -53,20 +53,27 @@ test('add two vectors', (t) => {
 })
 
 test('add a document to index', async (t) => {
+  const docId = 'test-1'
   const documents = [
     {
       content: 'This is a document I wish to add to the index.',
-      id: 'test-1'
+      id: docId
     }
   ]
 
-  const extractor = getFeatureExtractor()
+  const extractor = await getFeatureExtractor()
 
   const options = {
     docs: documents,
     extractor: extractor,
-    dimension: 384∫
+    dimension: 384,
+    tokensPerChunk: 256,
+    windowStep: 256,
+    oneVecPerDoc: true
   }
 
-  const index = new VectorIndex((docs = documents))
+  const index = new VectorIndex(options)
+  await index.add(documents)
+
+  t.alike(index.index[0], docId)
 })

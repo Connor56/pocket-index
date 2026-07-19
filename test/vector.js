@@ -1,3 +1,5 @@
+// @ts-check
+
 /*
   Basic tests should cover the public API from index.js.
 
@@ -14,6 +16,7 @@
 const test = require('brittle')
 const { VectorIndex, addVectors, sumVectorArray, normaliseVector } = require('../lib/vector')
 const { pipeline, env } = require('@huggingface/transformers')
+const b4a = require('b4a')
 
 let EXTRACTOR = null
 const MODEL_ID = 'onnx-community/all-MiniLM-L6-v2-ONNX'
@@ -41,16 +44,52 @@ test('add a document to index', async (t) => {
   const extractor = await getFeatureExtractor()
 
   const options = {
-    docs: documents,
     extractor: extractor,
     dimension: 384,
     tokensPerChunk: 256,
     windowStep: 256,
-    oneVecPerDoc: true
+    oneVecPerDoc: true,
+    modelId: MODEL_ID
   }
 
   const index = new VectorIndex(options)
   await index.add(documents)
+
+  t.alike(index.index[0], docId)
+})
+
+test('serialize the vector index into a binary format', async (t) => {
+  const docId = 'test-1'
+  const documents = [
+    {
+      content: 'This is a document I wish to add to the index.',
+      id: docId
+    }
+  ]
+
+  const extractor = await getFeatureExtractor()
+
+  // console.log(Object.keys(extractor))
+  // console.log(Object.keys(extractor.model))
+  // console.dir(extractor.model, { depth: null })
+
+  const options = {
+    extractor: extractor,
+    dimension: 384,
+    tokensPerChunk: 256,
+    windowStep: 256,
+    oneVecPerDoc: true,
+    modelId: MODEL_ID
+  }
+
+  const index = new VectorIndex(options)
+  await index.add(documents)
+
+  const buff = index.serialize()
+  console.log(buff.length)
+
+  t.is(buff.length, 1596)
+  t.is(b4a.isBuffer(buff), true)
 
   t.alike(index.index[0], docId)
 })

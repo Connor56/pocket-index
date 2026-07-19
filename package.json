@@ -33,6 +33,7 @@
   },
   "homepage": "https://github.com/connor56/pocket-index",
   "dependencies": {
-    "b4a": "^1.8.1"
+    "b4a": "^1.8.1",
+    "compact-encoding": "^3.3.0"
   }
 }

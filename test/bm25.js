@@ -24,11 +24,20 @@ function basicExtractor(text) {
   return lowered
 }
 
+function differentExtractor(text) {
+  const split = text.split(' ')
+  const filtered = split.filter((x) => x != '')
+  const lowered = filtered.map((key) => key.toLowerCase())
+  const set = new Set(lowered)
+  return [...set]
+}
+
 function createIndex(overrides = {}) {
   return new BM25Index({
     extractor: basicExtractor,
     k1: 1.5,
-    b: 0.75
+    b: 0.75,
+    ...overrides
   })
 }
 
@@ -85,8 +94,6 @@ test('test deserialising the binary format back into a BM25Index', (t) => {
   const newIndex = createIndex()
   newIndex.load(buff)
 
-  console.log(index.fuzzyThreshold, newIndex.fuzzyThreshold)
-
   t.alike(index.bm25Docs, newIndex.bm25Docs, 'Docs are the same')
   t.alike(index.avgLength, newIndex.avgLength, 'Avg length is the same')
   t.alike(index.k, newIndex.k, 'K is the same')
@@ -95,6 +102,27 @@ test('test deserialising the binary format back into a BM25Index', (t) => {
   t.alike(index.keywordSet, newIndex.keywordSet, 'Keyword set is the same')
   t.alike(index.extractorHash, newIndex.extractorHash, 'Extractor hash is the same')
   t.alike(index.version, newIndex.version, 'Version is the same')
+})
+
+test('test deserialising fails when the extractors are different', (t) => {
+  const documents = [
+    {
+      content: 'This is a document I wish to add to the index.',
+      id: 'test-1'
+    }
+  ]
+
+  const index = createIndex()
+  index.add(documents)
+
+  const buff = index.serialize()
+
+  const newIndex = createIndex({ extractor: differentExtractor })
+  t.exception(
+    () => newIndex.load(buff),
+    /extractor hash mismatch/i,
+    'Different extractors cause a loading failure'
+  )
 })
 
 test('test keyword fuzzy matching works', (t) => {

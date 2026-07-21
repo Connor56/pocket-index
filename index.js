@@ -13,3 +13,8 @@
   Avoid adding a build step, TypeScript output, generated files, or multiple
   competing public APIs unless the package genuinely needs them.
 */
+
+const { VectorIndex } = require('./lib/vector.js')
+const { BM25Index } = require('./lib/bm25.js')
+
+module.exports = { VectorIndex, BM25Index }

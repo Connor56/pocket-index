@@ -34,6 +34,7 @@
   "homepage": "https://github.com/connor56/pocket-index",
   "dependencies": {
     "b4a": "^1.8.1",
-    "compact-encoding": "^3.3.0"
+    "compact-encoding": "^3.3.0",
+    "fastest-levenshtein": "^1.0.16"
   }
 }

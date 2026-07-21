@@ -110,20 +110,19 @@ test('ids are added to idSet after a document is added', async (t) => {
   t.is(index.idSet.size, 1)
 })
 
-test('duplicate document ids are skipped', async (t) => {
+test('duplicate document ids cause an error', async (t) => {
   const index = await createIndex()
   const id = 'dup-1'
 
-  await index.add([
-    { id, content: 'First document with this id.' },
-    { id, content: 'Second document with the same id should be skipped.' }
-  ])
-
-  t.is(index.index.length, 1)
-  t.is(index.vectors.length, 1)
-  t.is(index.idSet.size, 1)
-  t.alike(index.index, [id])
-  t.is(index.contains(id), true)
+  await t.exception(
+    async () =>
+      await index.add([
+        { id, content: 'First document with this id.' },
+        { id, content: 'Second document with the same id should be skipped.' }
+      ]),
+    /duplicate doc/i,
+    'Duplicate documents cannot be added'
+  )
 })
 
 test('remove clears index, vectors, and idSet when oneVecPerDoc is true', async (t) => {
@@ -200,8 +199,7 @@ test('search returns relevant document ids', async (t) => {
 
   const results = await index.search('feline pets that meow', 2)
 
-  t.ok(results.includes('cats'))
-  t.is(results[0], 'cats')
+  t.is(results[0].id, 'cats')
 })
 
 test('loading binary fails when modelId does not match', async (t) => {

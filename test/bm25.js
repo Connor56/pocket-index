@@ -14,15 +14,17 @@
 */
 
 const test = require('brittle')
-const BM25Index = require('../lib/bm25')
+const { BM25Index, levenshteinSimilarity } = require('../lib/bm25')
 const b4a = require('b4a')
 
 function basicExtractor(text) {
   const split = text.split(' ')
-  return split.filter((x) => x != '')
+  const filtered = split.filter((x) => x != '')
+  const lowered = filtered.map((key) => key.toLowerCase())
+  return lowered
 }
 
-async function createIndex(overrides = {}) {
+function createIndex(overrides = {}) {
   return new BM25Index({
     extractor: basicExtractor,
     k1: 1.5,
@@ -30,7 +32,7 @@ async function createIndex(overrides = {}) {
   })
 }
 
-test('add a document to index', async (t) => {
+test('add a document to index', (t) => {
   const docId = 'test-1'
   const documents = [
     {
@@ -39,13 +41,13 @@ test('add a document to index', async (t) => {
     }
   ]
 
-  const index = await createIndex()
-  await index.add(documents)
+  const index = createIndex()
+  index.add(documents)
 
   t.ok(index.contains(docId), 'Document added to index')
 })
 
-test('serialize the bm25 index into a binary format', async (t) => {
+test('serialize the bm25 index into a binary format', (t) => {
   const docId = 'test-1'
   const documents = [
     {
@@ -54,16 +56,16 @@ test('serialize the bm25 index into a binary format', async (t) => {
     }
   ]
 
-  const index = await createIndex()
-  await index.add(documents)
+  const index = createIndex()
+  index.add(documents)
 
   const buff = index.serialize()
 
   t.is(b4a.isBuffer(buff), true, 'Buffer is a buffer')
-  t.is(buff.length, 254, 'Buffer length is correct')
+  t.is(buff.length, 274, 'Buffer length is correct')
 })
 
-test('test deserialising the binary format back into a BM25Index', async (t) => {
+test('test deserialising the binary format back into a BM25Index', (t) => {
   const documents = [
     {
       content: 'This is a document I wish to add to the index.',
@@ -75,19 +77,46 @@ test('test deserialising the binary format back into a BM25Index', async (t) => 
     }
   ]
 
-  const index = await createIndex()
-  await index.add(documents)
+  const index = createIndex()
+  index.add(documents)
 
   const buff = index.serialize()
 
-  const newIndex = await createIndex()
+  const newIndex = createIndex()
   newIndex.load(buff)
+
+  console.log(index.fuzzyThreshold, newIndex.fuzzyThreshold)
 
   t.alike(index.bm25Docs, newIndex.bm25Docs, 'Docs are the same')
   t.alike(index.avgLength, newIndex.avgLength, 'Avg length is the same')
   t.alike(index.k, newIndex.k, 'K is the same')
   t.alike(index.b, newIndex.b, 'B is the same')
+  t.alike(index.fuzzyThreshold, newIndex.fuzzyThreshold, 'Fuzzy threshold is the same')
   t.alike(index.keywordSet, newIndex.keywordSet, 'Keyword set is the same')
   t.alike(index.extractorHash, newIndex.extractorHash, 'Extractor hash is the same')
   t.alike(index.version, newIndex.version, 'Version is the same')
+})
+
+test('test keyword fuzzy matching works', (t) => {
+  const documents = [
+    {
+      content: 'This is a document I wish to add to the index.',
+      id: 'test-1'
+    }
+  ]
+
+  const index = createIndex()
+  index.add(documents)
+
+  const matched = index._fuzzyMatchKeywords([
+    'No',
+    'this',
+    'is',
+    'wrong',
+    'docuemnt',
+    'docament',
+    'indax'
+  ])
+
+  t.alike(matched, ['this', 'is', 'document'], 'The correct keywords were matched')
 })

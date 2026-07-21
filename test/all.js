@@ -8,6 +8,7 @@ async function runTests() {
   test.pause()
 
   await import('./vector.js')
+  await import('./bm25.js')
 
   test.resume()
 }

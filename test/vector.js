@@ -24,7 +24,7 @@ const {
 const { pipeline, env } = require('@huggingface/transformers')
 const b4a = require('b4a')
 
-let EXTRACTOR = null
+let EXTRACTOR
 const MODEL_ID = 'onnx-community/all-MiniLM-L6-v2-ONNX'
 env.cacheDir = './.cache/transformers'
 
@@ -246,7 +246,7 @@ test('add two vectors', (t) => {
   const expectedSum = Float32Array.from([3, -1, -5])
 
   // Setup for fair timing
-  let sum = []
+  let sum
   sum = addVectors(vec1, vec2, false)
 
   const newArrayStart = performance.now()

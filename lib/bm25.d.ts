@@ -14,11 +14,11 @@ export interface BM25Doc {
 
 export declare class BM25Index {
   constructor(opts: BM25IndexOptions)
-  add(documents: Doc[]): Promise<void>
+  add(documents: Doc[]): void
   serialize(): Buffer
   save(path: string): void
   load(path: string | Buffer): void
-  search(query: string, topK?: number | null): Promise<SearchResult[]>
+  search(query: string, topK?: number | null): SearchResult[]
   remove(id: string): void
   list(): string[]
   contains(id: string): boolean

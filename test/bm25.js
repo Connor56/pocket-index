@@ -19,6 +19,7 @@ const test = require('brittle')
 const b4a = require('b4a')
 
 const { BM25Index, levenshteinSimilarity } = require('../lib/bm25')
+const { loadArticles } = require('./helpers')
 
 function basicExtractor(text) {
   const split = text.split(' ')
@@ -299,6 +300,39 @@ test('calculate idf scores rare terms higher than common ones', (t) => {
   t.is(index.idf.common, expectedRare)
   t.is(index.idf.shared, expectedCommon)
   t.ok(index.idf.unique > index.idf.shared)
+})
+
+test('search ranks the matching article first for article data queries', (t) => {
+  const index = createIndex()
+  index.add(loadArticles())
+
+  const queries = [
+    {
+      query: 'Merkle root fingerprint of leaf hashes and parent hash tree proofs',
+      id: 'merkle-trees'
+    },
+    {
+      query: 'append-only log of binary blocks identified by a public key',
+      id: 'hypercore'
+    },
+    {
+      query: 'NAT holepunching simultaneous outbound packets temporary mappings traversal',
+      id: 'holepunching-nats'
+    },
+    {
+      query: 'Kademlia-style distributed hash table peer discovery keyed by public keys',
+      id: 'hyperdht'
+    },
+    {
+      query: 'join a 32-byte topic many-to-many encrypted swarm duplex streams',
+      id: 'hyperswarm'
+    }
+  ]
+
+  for (const { query, id } of queries) {
+    const results = index.search(query, 1)
+    t.is(results[0].id, id, `query should rank ${id} first`)
+  }
 })
 
 test('levenshteinSimilarity returns 1 for identical strings', (t) => {

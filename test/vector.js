@@ -23,6 +23,7 @@ const {
 } = require('../lib/vector')
 const { pipeline, env } = require('@huggingface/transformers')
 const b4a = require('b4a')
+const { loadArticles } = require('./helpers')
 
 let EXTRACTOR
 const MODEL_ID = 'onnx-community/all-MiniLM-L6-v2-ONNX'
@@ -200,6 +201,40 @@ test('search returns relevant document ids', async (t) => {
   const results = await index.search('feline pets that meow', 2)
 
   t.is(results[0].id, 'cats')
+})
+
+test('search ranks the matching article first for article data queries', async (t) => {
+  const index = await createIndex()
+  await index.add(loadArticles())
+
+  const queries = [
+    {
+      query: 'Merkle root fingerprint of leaf hashes and parent hash tree proofs',
+      id: 'merkle-trees'
+    },
+    {
+      query: 'The primitive building block of the entire P2P persistent data stack',
+      id: 'hypercore'
+    },
+    {
+      query: 'NAT holepunching simultaneous outbound packets temporary mappings traversal',
+      id: 'holepunching-nats'
+    },
+    {
+      query: 'Kademlia-style distributed hash table peer discovery keyed by public keys',
+      id: 'hyperdht'
+    },
+    {
+      query: 'join a 32-byte topic many-to-many encrypted swarm duplex streams',
+      id: 'hyperswarm'
+    }
+  ]
+
+  for (const { query, id } of queries) {
+    const results = await index.search(query, 5)
+    console.log(results)
+    t.is(results[0].id, id, `query should rank ${id} first`)
+  }
 })
 
 test('loading binary fails when modelId does not match', async (t) => {

@@ -1,37 +1,26 @@
-# Pocket Index
+# pocket-index
 
-Pocket Index is a simple, browser compatible search index that lets users search for content locally and retrieve it separately. There are three problems it was designed to solve:
+Tiny browser-friendly search indexes for external documents.
 
-1. Reducing backend request volume whilst preserving a fantastic user experience.
-2. Minimising data sent to the user.
-3. Creating a simple API for building search indexes.
+Pocket Index lets users search locally and retrieve full content separately. It is aimed at three goals:
 
-It solves these by:
+1. Cut backend request volume without giving up a fast search UX.
+2. Minimise what you send to the client — ship an index, not every document body.
+3. Keep a small API for building, searching, saving, and loading indexes.
 
-1. Sending just the search index to the client side so when the user searches your site for content, their own, powerful, extremely low latency machine does the calculations.
-2. Encoding search indexes in compact binary that can be gzipped and sent with a minimal footprint.
-3. Providing a bare minimum API that gives you everything you need to build, search, save, and load an index.
+It achieves these by sending a compact binary index to the client so ranking runs on the user's machine, encoding that index so it gzips well for CDN or object storage, and exposing only the methods you need to build and query it.
 
-## The problem it was orginally created to solve
+## Why
 
-I built this for a blogging website that I'm running on the free tier of Cloudflare's infrastructure. The thought process is:
-
-1. I'd like to use vector embedding on my documents for a great search experience.
-2. I don't want to pay for the vector computation.
-3. I KNOW! I'll let the user do it client side and provide them with an index to search against.
-
-The index will return a list of IDs and I'll use these to order the articles on the client. Instant search, zero cost, lovely.
+Built for frontend search with minimal backend cost. Embedding or ranking every query on a server adds latency and spend; prebuilding an index and searching in the browser avoids that. A typical flow is: build the index offline or in CI, host the binary on a CDN / S3 / R2, let the client search locally, then use the returned ids to fetch or order full documents.
 
 ## Features
 
-- **Vector Search Index.** Use content-based vector embeddings across your documents.
-- **Bring your own Embedding.** The package relies on the [Hugging face transformers](https://www.npmjs.com/package/@huggingface/transformers) package for vector embeddings, and you can use whatever model you like. However, bare in mind the user will have to load that same model client side to use your index.
-- **BM25 Search Index.** Use the [Okapi BM25 ranking function](https://en.wikipedia.org/wiki/Okapi_BM25) to perform keyword lookup type queries.
-- **Bring your own Extractor.** BM25 relies on keyword extraction to build its data structure and compare queries to documents. The exact extraction function used is passed as a parameter, so you can make it whatever you like. Just make sure it's the same on the backend and the client!
+- **Vector search index** — content embeddings across your documents. Bring your own embedding pipeline (e.g. [Hugging Face transformers](https://www.npmjs.com/package/@huggingface/transformers)); clients must load the same model to search.
+- **BM25 search index** — [Okapi BM25](https://en.wikipedia.org/wiki/Okapi_BM25) keyword ranking. Bring your own keyword extractor and use the same function on build and client.
+- **Compact binary format** — serialize or save indexes for cheap static hosting and small downloads.
 
 ## Install
-
-To install the package run:
 
 ```sh
 npm i pocket-index
@@ -61,10 +50,7 @@ const { BM25Index } = require('pocket-index')
 
 // You control how text becomes keywords. Keep this identical on build and client.
 function extractKeywords(text) {
-  return text
-    .toLowerCase()
-    .split(/\W+/)
-    .filter(Boolean)
+  return text.toLowerCase().split(/\W+/).filter(Boolean)
 }
 
 // Create the index with your extractor. Optional k1/b/fuzzyThreshold have defaults.
@@ -87,10 +73,7 @@ import { BM25Index } from 'pocket-index'
 
 // You control how text becomes keywords. Keep this identical on build and client.
 function extractKeywords(text: string): string[] {
-  return text
-    .toLowerCase()
-    .split(/\W+/)
-    .filter(Boolean)
+  return text.toLowerCase().split(/\W+/).filter(Boolean)
 }
 
 // Create the index with your extractor. Optional k1/b/fuzzyThreshold have defaults.
@@ -349,12 +332,12 @@ Create a vector index.
 
 ```js
 {
-  extractor, // required embedding function (Hugging Face style)
-  modelId, // required string, stored and checked on load
-  dimension, // required embedding size
-  tokensPerChunk, // chunk size in tokens/words for long documents
-  windowStep, // step between chunks
-  oneVecPerDoc // if true, sum chunk vectors into one vector per document
+  ;(extractor, // required embedding function (Hugging Face style)
+    modelId, // required string, stored and checked on load
+    dimension, // required embedding size
+    tokensPerChunk, // chunk size in tokens/words for long documents
+    windowStep, // step between chunks
+    oneVecPerDoc) // if true, sum chunk vectors into one vector per document
 }
 ```
 

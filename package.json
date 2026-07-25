@@ -3,6 +3,16 @@
   "version": "1.0.0",
   "description": "Tiny browser-friendly search indexes for external documents.",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/connor56/pocket-index.git"
+  },
+  "author": "Connor Skelland",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/connor56/pocket-index/issues"
+  },
+  "homepage": "https://github.com/connor56/pocket-index",
   "files": [
     "index.js",
     "lib/**.js",
@@ -23,16 +33,6 @@
     "prettier": "^3.6.2",
     "prettier-config-holepunch": "^2.0.0"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/connor56/pocket-index.git"
-  },
-  "author": "Connor Skelland",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/connor56/pocket-index/issues"
-  },
-  "homepage": "https://github.com/connor56/pocket-index",
   "dependencies": {
     "b4a": "^1.8.1",
     "compact-encoding": "^3.3.0",

@@ -159,10 +159,10 @@ Both indexes can be written to a file or turned into a buffer you upload somewhe
 
 ```js
 // Persist the built index as a compact binary file on disk.
-index.save('./search-index.bin')
+await index.save('./search-index.bin')
 
 // Or serialize to a buffer if you want to upload without writing a local file.
-const buffer = index.serialize()
+const buffer = await index.serialize()
 
 // Upload that buffer to object storage (Cloudflare R2, S3, etc.).
 // Clients can later download this object and call load(buffer).
@@ -180,10 +180,10 @@ await s3.send(
 
 ```ts
 // Persist the built index as a compact binary file on disk.
-index.save('./search-index.bin')
+await index.save('./search-index.bin')
 
 // Or serialize to a buffer if you want to upload without writing a local file.
-const buffer = index.serialize()
+const buffer = await index.serialize()
 
 // Upload that buffer to object storage (Cloudflare R2, S3, etc.).
 // Clients can later download this object and call load(buffer).
@@ -206,9 +206,9 @@ On the client (or another process), recreate the index with the same extractor (
 const loaded = new BM25Index({ extractor: extractKeywords })
 
 // load() accepts a file path...
-loaded.load('./search-index.bin')
+await loaded.load('./search-index.bin')
 // ...or the buffer you downloaded from R2/S3:
-// loaded.load(buffer)
+// await loaded.load(buffer)
 
 // Search works the same as on the freshly built index.
 const results = loaded.search('append only log', 5)
@@ -239,9 +239,9 @@ const results = await loaded.search('how do peers find each other?', 5)
 const loaded = new BM25Index({ extractor: extractKeywords })
 
 // load() accepts a file path...
-loaded.load('./search-index.bin')
+await loaded.load('./search-index.bin')
 // ...or the buffer you downloaded from R2/S3:
-// loaded.load(buffer)
+// await loaded.load(buffer)
 
 // Search works the same as on the freshly built index.
 const results = loaded.search('append only log', 5)
@@ -298,15 +298,15 @@ Add documents. Each document must be `{ id, content }`. Throws if an `id` is dup
 
 Search the index. Returns `[{ id, score }, ...]` sorted by score descending. If `topK` is set, only that many results are returned.
 
-#### `const buffer = index.serialize()`
+#### `const buffer = await index.serialize()`
 
 Encode the index to a binary buffer.
 
-#### `index.save(path)`
+#### `await index.save(path)`
 
 Serialize the index and write it to `path`.
 
-#### `index.load(pathOrBuffer)`
+#### `await index.load(pathOrBuffer)`
 
 Restore index state from a file path or a buffer previously produced by `serialize()` / `save()`. The extractor must match the one used when the index was built (checked via a hash of `extractor.toString()`).
 

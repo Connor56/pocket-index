@@ -83,7 +83,7 @@ test('add rejects invalid documents', (t) => {
   )
 })
 
-test('serialize the bm25 index into a binary format', (t) => {
+test('serialize the bm25 index into a binary format', async (t) => {
   const docId = 'test-1'
   const documents = [
     {
@@ -95,13 +95,13 @@ test('serialize the bm25 index into a binary format', (t) => {
   const index = createIndex()
   index.add(documents)
 
-  const buff = index.serialize()
+  const buff = await index.serialize()
 
   t.is(b4a.isBuffer(buff), true, 'Buffer is a buffer')
   t.is(buff.length, 274, 'Buffer length is correct')
 })
 
-test('load restores index state from a binary buffer', (t) => {
+test('load restores index state from a binary buffer', async (t) => {
   const documents = [
     {
       content: 'This is a document I wish to add to the index.',
@@ -116,10 +116,10 @@ test('load restores index state from a binary buffer', (t) => {
   const index = createIndex()
   index.add(documents)
 
-  const buff = index.serialize()
+  const buff = await index.serialize()
 
   const newIndex = createIndex()
-  newIndex.load(buff)
+  await newIndex.load(buff)
 
   t.alike(index.bm25Docs, newIndex.bm25Docs, 'Docs are the same')
   t.alike(index.avgLength, newIndex.avgLength, 'Avg length is the same')
@@ -131,7 +131,7 @@ test('load restores index state from a binary buffer', (t) => {
   t.alike(index.version, newIndex.version, 'Version is the same')
 })
 
-test('load fails when the extractors are different', (t) => {
+test('load fails when the extractors are different', async (t) => {
   const documents = [
     {
       content: 'This is a document I wish to add to the index.',
@@ -142,20 +142,20 @@ test('load fails when the extractors are different', (t) => {
   const index = createIndex()
   index.add(documents)
 
-  const buff = index.serialize()
+  const buff = await index.serialize()
 
   const newIndex = createIndex({ extractor: differentExtractor })
-  t.exception(
+  await t.exception(
     () => newIndex.load(buff),
     /extractor hash mismatch/i,
     'Different extractors cause a loading failure'
   )
 })
 
-test('load fails when neither path nor buffer is provided', (t) => {
+test('load fails when neither path nor buffer is provided', async (t) => {
   const index = createIndex()
 
-  t.exception(() => index.load(42), /path or buffer/i, 'Invalid load input is rejected')
+  await t.exception(() => index.load(42), /path or buffer/i, 'Invalid load input is rejected')
 })
 
 test('save and load round-trip through a file path', async (t) => {
@@ -169,10 +169,10 @@ test('save and load round-trip through a file path', async (t) => {
 
   const index = createIndex()
   index.add(documents)
-  index.save(filePath)
+  await index.save(filePath)
 
   const loaded = createIndex()
-  loaded.load(filePath)
+  await loaded.load(filePath)
 
   t.alike(loaded.list().sort(), ['cars', 'cats'])
   t.alike(loaded.bm25Docs, index.bm25Docs)

@@ -15,15 +15,16 @@ export interface BM25Doc {
 export declare class BM25Index {
   constructor(opts: BM25IndexOptions)
   add(documents: Doc[]): void
-  serialize(): Buffer
-  save(path: string): void
-  load(path: string | Buffer): void
+  serialize(): Promise<Buffer>
+  save(path: string): Promise<void>
+  load(path: string | Buffer): Promise<void>
   search(query: string, topK?: number | null): SearchResult[]
   remove(id: string): void
   list(): string[]
   contains(id: string): boolean
 
   _loadFromBinary(buffer: Buffer): void
+  _ensureExtractorHash(): Promise<void>
   _extractKeywords(text: string): string[]
   _buildKeywordMap(keywords: string[]): Record<string, number>
   _scoreDoc(bm25Doc: BM25Doc, keywords: string[]): number
@@ -34,7 +35,7 @@ export declare class BM25Index {
   _validateDocument(doc: Doc): void
 
   extractor: (text: string) => string[]
-  extractorHash: string
+  extractorHash: string | null
   version: number
   fuzzyThreshold: number
   k1: number

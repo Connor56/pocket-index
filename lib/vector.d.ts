@@ -21,16 +21,16 @@ export interface VectorIndexOptions {
 export declare class VectorIndex {
   constructor(opts: VectorIndexOptions)
   add(documents: Doc[]): Promise<void>
-  serialize(): Buffer
+  serialize(): Uint8Array
   save(path: string): void
-  load(path: string | Buffer): void
+  load(pathOrBytes: string | Uint8Array): void
   search(query: string, topK?: number | null): Promise<SearchResult[]>
   remove(id: string): void
   list(): string[]
   contains(id: string): boolean
 
   _splitTextIntoSentenceChunks(text: string): string[]
-  _loadFromBinary(data: Buffer): void
+  _loadFromBinary(bytes: Uint8Array): void
   _embedText(text: string, extractor: HuggingFaceExtractorType): Promise<Float32Array>
   _validateExtractor(extractor: HuggingFaceExtractorType): void
   _validateModelId(modelId: string): void

@@ -153,7 +153,7 @@ const results = await index.search('how do peers find each other?', 5)
 
 ### Serialize, save, and ship the index
 
-Both indexes can be written to a file or turned into a buffer you upload somewhere else (S3, R2, a CDN, etc.).
+Both indexes can be written to a file or serialized into a `Uint8Array` you upload somewhere else (S3, R2, a CDN, etc.). Throughout this API and documentation, serialized binary values are named `bytes`.
 
 **CommonJS**
 
@@ -161,16 +161,16 @@ Both indexes can be written to a file or turned into a buffer you upload somewhe
 // Persist the built index as a compact binary file on disk.
 await index.save('./search-index.bin')
 
-// Or serialize to a buffer if you want to upload without writing a local file.
-const buffer = await index.serialize()
+// Or serialize to bytes if you want to upload without writing a local file.
+const bytes = await index.serialize()
 
-// Upload that buffer to object storage (Cloudflare R2, S3, etc.).
-// Clients can later download this object and call load(buffer).
+// Upload those bytes to object storage (Cloudflare R2, S3, etc.).
+// Clients can later download this object and call load(bytes).
 await s3.send(
   new PutObjectCommand({
     Bucket: 'my-bucket',
     Key: 'indexes/search-index.bin',
-    Body: buffer, // the compact-encoding binary from serialize()
+    Body: bytes, // the Uint8Array returned by serialize()
     ContentType: 'application/octet-stream'
   })
 )
@@ -182,22 +182,22 @@ await s3.send(
 // Persist the built index as a compact binary file on disk.
 await index.save('./search-index.bin')
 
-// Or serialize to a buffer if you want to upload without writing a local file.
-const buffer = await index.serialize()
+// Or serialize to bytes if you want to upload without writing a local file.
+const bytes: Uint8Array = await index.serialize()
 
-// Upload that buffer to object storage (Cloudflare R2, S3, etc.).
-// Clients can later download this object and call load(buffer).
+// Upload those bytes to object storage (Cloudflare R2, S3, etc.).
+// Clients can later download this object and call load(bytes).
 await s3.send(
   new PutObjectCommand({
     Bucket: 'my-bucket',
     Key: 'indexes/search-index.bin',
-    Body: buffer, // the compact-encoding binary from serialize()
+    Body: bytes, // the Uint8Array returned by serialize()
     ContentType: 'application/octet-stream'
   })
 )
 ```
 
-On the client (or another process), recreate the index with the same extractor (BM25) or the same `modelId` + extractor (vector), then load from a path or buffer:
+On the client (or another process), recreate the index with the same extractor (BM25) or the same `modelId` + extractor (vector), then load from a path or `Uint8Array`:
 
 **CommonJS**
 
@@ -207,8 +207,8 @@ const loaded = new BM25Index({ extractor: extractKeywords })
 
 // load() accepts a file path...
 await loaded.load('./search-index.bin')
-// ...or the buffer you downloaded from R2/S3:
-// await loaded.load(buffer)
+// ...or the bytes you downloaded from R2/S3:
+// await loaded.load(bytes)
 
 // Search works the same as on the freshly built index.
 const results = loaded.search('append only log', 5)
@@ -226,7 +226,7 @@ const loaded = new VectorIndex({
 })
 
 // Restore vectors/ids from the downloaded binary.
-loaded.load(buffer)
+loaded.load(bytes)
 
 // Queries are embedded with the client-side model, then ranked against the index.
 const results = await loaded.search('how do peers find each other?', 5)
@@ -240,8 +240,8 @@ const loaded = new BM25Index({ extractor: extractKeywords })
 
 // load() accepts a file path...
 await loaded.load('./search-index.bin')
-// ...or the buffer you downloaded from R2/S3:
-// await loaded.load(buffer)
+// ...or the bytes you downloaded from R2/S3:
+// await loaded.load(bytes)
 
 // Search works the same as on the freshly built index.
 const results = loaded.search('append only log', 5)
@@ -259,13 +259,13 @@ const loaded = new VectorIndex({
 })
 
 // Restore vectors/ids from the downloaded binary.
-loaded.load(buffer)
+loaded.load(bytes)
 
 // Queries are embedded with the client-side model, then ranked against the index.
 const results = await loaded.search('how do peers find each other?', 5)
 ```
 
-A typical flow is: build the index in CI or on a backend → `serialize()` → upload to R2/S3 → clients fetch the `.bin` → `load(buffer)` → search locally and fetch full documents by `id` as needed.
+A typical flow is: build the index in CI or on a backend → `serialize()` → upload the bytes to R2/S3 → clients fetch the `.bin` as a `Uint8Array` → `load(bytes)` → search locally and fetch full documents by `id` as needed.
 
 ## API
 
@@ -298,17 +298,17 @@ Add documents. Each document must be `{ id, content }`. Throws if an `id` is dup
 
 Search the index. Returns `[{ id, score }, ...]` sorted by score descending. If `topK` is set, only that many results are returned.
 
-#### `const buffer = await index.serialize()`
+#### `const bytes = await index.serialize()`
 
-Encode the index to a binary buffer.
+Encode the index and return its serialized bytes as a `Promise<Uint8Array>`.
 
 #### `await index.save(path)`
 
 Serialize the index and write it to `path`.
 
-#### `await index.load(pathOrBuffer)`
+#### `await index.load(pathOrBytes)`
 
-Restore index state from a file path or a buffer previously produced by `serialize()` / `save()`. The extractor must match the one used when the index was built (checked via a hash of `extractor.toString()`).
+Restore index state from a file path or a `Uint8Array` produced by `serialize()`. The extractor must match the one used when the index was built (checked via a hash of `extractor.toString()`).
 
 #### `index.remove(id)`
 
@@ -349,17 +349,17 @@ Embed and add documents. Each document must be `{ id, content }`. Throws if an `
 
 Embed the query and return `[{ id, score }, ...]` ranked by cosine similarity. If `topK` is set, only that many unique document ids are returned.
 
-#### `const buffer = index.serialize()`
+#### `const bytes = index.serialize()`
 
-Encode the index to a binary buffer.
+Encode the index and return its serialized bytes as a `Uint8Array`.
 
 #### `index.save(path)`
 
 Serialize the index and write it to `path`.
 
-#### `index.load(pathOrBuffer)`
+#### `index.load(pathOrBytes)`
 
-Restore index state from a file path or buffer. `modelId` must match the model used when the index was built.
+Restore index state from a file path or serialized `Uint8Array`. `modelId` must match the model used when the index was built.
 
 #### `index.remove(id)`
 

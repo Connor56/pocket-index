@@ -22,7 +22,6 @@ const {
   argsort
 } = require('../lib/vector')
 const { pipeline, env } = require('@huggingface/transformers')
-const b4a = require('b4a')
 const { loadArticles } = require('./helpers')
 
 let EXTRACTOR
@@ -80,10 +79,10 @@ test('serialize the vector index into a binary format', async (t) => {
   const index = await createIndex()
   await index.add(documents)
 
-  const buff = index.serialize()
+  const bytes = index.serialize()
 
-  t.is(buff.length, 1596)
-  t.is(b4a.isBuffer(buff), true)
+  t.is(bytes.length, 1596)
+  t.is(bytes instanceof Uint8Array, true)
   t.alike(index.index[0], docId)
 })
 
@@ -241,22 +240,22 @@ test('loading binary fails when modelId does not match', async (t) => {
   const source = await createIndex({ modelId: MODEL_ID })
   await source.add([{ id: 'doc-1', content: 'Document stored in the index binary.' }])
 
-  const buffer = source.serialize()
+  const bytes = source.serialize()
 
   const target = await createIndex({ modelId: 'different-model-id' })
 
-  t.exception(() => target.load(buffer), /Model ID mismatch/)
+  t.exception(() => target.load(bytes), /Model ID mismatch/)
 })
 
-test('load restores index state from a binary buffer', async (t) => {
+test('load restores index state from serialized bytes', async (t) => {
   const source = await createIndex()
   await source.add([{ id: 'doc-1', content: 'Document stored in the index binary.' }])
   await source.add([{ id: 'doc-2', content: 'A second document stored in the index binary.' }])
 
-  const buffer = source.serialize()
+  const bytes = source.serialize()
 
   const target = await createIndex()
-  target.load(buffer)
+  target.load(bytes)
 
   t.alike(target.index, ['doc-1', 'doc-2'])
   t.is(target.vectors.length, 2)

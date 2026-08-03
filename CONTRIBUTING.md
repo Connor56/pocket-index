@@ -12,7 +12,7 @@ Use this as the checklist for keeping the package in mafintosh / Holepunch style
 | Lifecycle         | Use `ready-resource` for async `ready()` / `close()` lifecycle, or clear `destroyed` / `closed` flags for smaller modules.                                       |
 | Internals         | Prefix internal state and methods with `_`. Keep helper functions private or place them in `lib/`.                                                               |
 | Dependencies      | Prefer small focused dependencies such as `b4a`, `streamx`, `compact-encoding`, `ready-resource`, and `safety-catch`, but only add them when the code uses them. |
-| Buffers           | Use `b4a` instead of directly relying on Node `Buffer` APIs.                                                                                                     |
+| Binary data       | Expose binary values as `Uint8Array`, name serialized values `bytes`, and use `b4a` for cross-runtime byte operations.                                           |
 | Streams           | Use `streamx` for stream APIs.                                                                                                                                   |
 | Runtime support   | Use `imports` mappings for Node/Bare differences, for example `events`, `fs`, `path`, or `process`.                                                              |
 | Errors            | Use package-specific errors or shared ecosystem errors when needed. Keep `.code` stable for user-visible failures.                                               |

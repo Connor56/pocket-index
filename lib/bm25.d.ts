@@ -15,15 +15,15 @@ export interface BM25Doc {
 export declare class BM25Index {
   constructor(opts: BM25IndexOptions)
   add(documents: Doc[]): void
-  serialize(): Promise<Buffer>
+  serialize(): Promise<Uint8Array>
   save(path: string): Promise<void>
-  load(path: string | Buffer): Promise<void>
+  load(pathOrBytes: string | Uint8Array): Promise<void>
   search(query: string, topK?: number | null): SearchResult[]
   remove(id: string): void
   list(): string[]
   contains(id: string): boolean
 
-  _loadFromBinary(buffer: Buffer): void
+  _loadFromBinary(bytes: Uint8Array): void
   _ensureExtractorHash(): Promise<void>
   _extractKeywords(text: string): string[]
   _buildKeywordMap(keywords: string[]): Record<string, number>

@@ -16,7 +16,6 @@
 const path = require('path')
 
 const test = require('brittle')
-const b4a = require('b4a')
 
 const { BM25Index, levenshteinSimilarity } = require('../lib/bm25')
 const { loadArticles } = require('./helpers')
@@ -95,13 +94,13 @@ test('serialize the bm25 index into a binary format', async (t) => {
   const index = createIndex()
   index.add(documents)
 
-  const buff = await index.serialize()
+  const bytes = await index.serialize()
 
-  t.is(b4a.isBuffer(buff), true, 'Buffer is a buffer')
-  t.is(buff.length, 274, 'Buffer length is correct')
+  t.is(bytes instanceof Uint8Array, true, 'Serialized index is a Uint8Array')
+  t.is(bytes.length, 274, 'Serialized byte length is correct')
 })
 
-test('load restores index state from a binary buffer', async (t) => {
+test('load restores index state from serialized bytes', async (t) => {
   const documents = [
     {
       content: 'This is a document I wish to add to the index.',
@@ -116,10 +115,10 @@ test('load restores index state from a binary buffer', async (t) => {
   const index = createIndex()
   index.add(documents)
 
-  const buff = await index.serialize()
+  const bytes = await index.serialize()
 
   const newIndex = createIndex()
-  await newIndex.load(buff)
+  await newIndex.load(bytes)
 
   t.alike(index.bm25Docs, newIndex.bm25Docs, 'Docs are the same')
   t.alike(index.avgLength, newIndex.avgLength, 'Avg length is the same')
@@ -142,20 +141,20 @@ test('load fails when the extractors are different', async (t) => {
   const index = createIndex()
   index.add(documents)
 
-  const buff = await index.serialize()
+  const bytes = await index.serialize()
 
   const newIndex = createIndex({ extractor: differentExtractor })
   await t.exception(
-    () => newIndex.load(buff),
+    () => newIndex.load(bytes),
     /extractor hash mismatch/i,
     'Different extractors cause a loading failure'
   )
 })
 
-test('load fails when neither path nor buffer is provided', async (t) => {
+test('load fails when neither path nor bytes are provided', async (t) => {
   const index = createIndex()
 
-  await t.exception(() => index.load(42), /path or buffer/i, 'Invalid load input is rejected')
+  await t.exception(() => index.load(42), /path or bytes/i, 'Invalid load input is rejected')
 })
 
 test('save and load round-trip through a file path', async (t) => {

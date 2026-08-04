@@ -17,7 +17,7 @@ Built for frontend search with minimal backend cost. Embedding or ranking every 
 ## Features
 
 - **Vector search index** — content embeddings across your documents. Bring your own embedding pipeline (e.g. [Hugging Face transformers](https://www.npmjs.com/package/@huggingface/transformers)); clients must load the same model to search.
-- **BM25 search index** — [Okapi BM25](https://en.wikipedia.org/wiki/Okapi_BM25) keyword ranking. Bring your own keyword extractor and use the same function on build and client.
+- **BM25 search index** — [Okapi BM25](https://en.wikipedia.org/wiki/Okapi_BM25) keyword ranking. Bring your own keyword extractor and identify its behaviour consistently on build and client.
 - **Compact binary format** — serialize or save indexes for cheap static hosting and small downloads.
 
 ## Install
@@ -41,20 +41,25 @@ const documents = [
 
 ### BM25Index
 
-BM25 is a keyword ranking index. Pass in your own keyword extractor and use the same function when building and when loading/searching.
+BM25 is a keyword ranking index. Pass in your own keyword extractor and a stable `extractorId`. Use the same ID and compatible extraction behaviour when building and when loading/searching. Change the ID whenever the extractor's behaviour changes.
+
+Pocket Index currently trusts this manually supplied ID. A future release may optionally verify extractor behaviour against fixed golden samples if there is demand for the additional guardrail.
 
 **CommonJS**
 
 ```js
 const { BM25Index } = require('pocket-index')
 
-// You control how text becomes keywords. Keep this identical on build and client.
+// You control how text becomes keywords. Keep its behaviour compatible across environments.
 function extractKeywords(text) {
   return text.toLowerCase().split(/\W+/).filter(Boolean)
 }
 
-// Create the index with your extractor. Optional k1/b/fuzzyThreshold have defaults.
-const index = new BM25Index({ extractor: extractKeywords })
+// The ID describes the extractor's behaviour and must match when loading.
+const index = new BM25Index({
+  extractor: extractKeywords,
+  extractorId: 'simple-english-v1'
+})
 
 // Index the documents. This builds keyword maps and BM25 stats in memory.
 index.add(documents)
@@ -71,13 +76,16 @@ const results = index.search('append only log', 5)
 ```ts
 import { BM25Index } from 'pocket-index'
 
-// You control how text becomes keywords. Keep this identical on build and client.
+// You control how text becomes keywords. Keep its behaviour compatible across environments.
 function extractKeywords(text: string): string[] {
   return text.toLowerCase().split(/\W+/).filter(Boolean)
 }
 
-// Create the index with your extractor. Optional k1/b/fuzzyThreshold have defaults.
-const index = new BM25Index({ extractor: extractKeywords })
+// The ID describes the extractor's behaviour and must match when loading.
+const index = new BM25Index({
+  extractor: extractKeywords,
+  extractorId: 'simple-english-v1'
+})
 
 // Index the documents. This builds keyword maps and BM25 stats in memory.
 index.add(documents)
@@ -159,10 +167,10 @@ Both indexes can be written to a file or serialized into a `Uint8Array` you uplo
 
 ```js
 // Persist the built index as a compact binary file on disk.
-await index.save('./search-index.bin')
+index.save('./search-index.bin')
 
 // Or serialize to bytes if you want to upload without writing a local file.
-const bytes = await index.serialize()
+const bytes = index.serialize()
 
 // Upload those bytes to object storage (Cloudflare R2, S3, etc.).
 // Clients can later download this object and call load(bytes).
@@ -180,10 +188,10 @@ await s3.send(
 
 ```ts
 // Persist the built index as a compact binary file on disk.
-await index.save('./search-index.bin')
+index.save('./search-index.bin')
 
 // Or serialize to bytes if you want to upload without writing a local file.
-const bytes: Uint8Array = await index.serialize()
+const bytes: Uint8Array = index.serialize()
 
 // Upload those bytes to object storage (Cloudflare R2, S3, etc.).
 // Clients can later download this object and call load(bytes).
@@ -197,18 +205,21 @@ await s3.send(
 )
 ```
 
-On the client (or another process), recreate the index with the same extractor (BM25) or the same `modelId` + extractor (vector), then load from a path or `Uint8Array`:
+On the client (or another process), recreate the BM25 index with compatible extractor behaviour and the same `extractorId`, or the vector index with the same `modelId` + extractor. Then load from a path or `Uint8Array`:
 
 **CommonJS**
 
 ```js
-// Recreate with the SAME extractor used at build time, then restore state.
-const loaded = new BM25Index({ extractor: extractKeywords })
+// Recreate with compatible extractor behaviour and the SAME extractorId.
+const loaded = new BM25Index({
+  extractor: extractKeywords,
+  extractorId: 'simple-english-v1'
+})
 
 // load() accepts a file path...
-await loaded.load('./search-index.bin')
+loaded.load('./search-index.bin')
 // ...or the bytes you downloaded from R2/S3:
-// await loaded.load(bytes)
+// loaded.load(bytes)
 
 // Search works the same as on the freshly built index.
 const results = loaded.search('append only log', 5)
@@ -235,13 +246,16 @@ const results = await loaded.search('how do peers find each other?', 5)
 **TypeScript**
 
 ```ts
-// Recreate with the SAME extractor used at build time, then restore state.
-const loaded = new BM25Index({ extractor: extractKeywords })
+// Recreate with compatible extractor behaviour and the SAME extractorId.
+const loaded = new BM25Index({
+  extractor: extractKeywords,
+  extractorId: 'simple-english-v1'
+})
 
 // load() accepts a file path...
-await loaded.load('./search-index.bin')
+loaded.load('./search-index.bin')
 // ...or the bytes you downloaded from R2/S3:
-// await loaded.load(bytes)
+// loaded.load(bytes)
 
 // Search works the same as on the freshly built index.
 const results = loaded.search('append only log', 5)
@@ -284,6 +298,7 @@ Create a BM25 keyword index.
 ```js
 {
   extractor, // required function (text) => string[]
+  extractorId, // required stable identifier for the extractor's behaviour
   k1: 1.5, // term frequency saturation
   b: 0.75, // document length normalisation
   fuzzyThreshold: 0.85 // levenshtein similarity threshold for fuzzy keyword match
@@ -298,17 +313,17 @@ Add documents. Each document must be `{ id, content }`. Throws if an `id` is dup
 
 Search the index. Returns `[{ id, score }, ...]` sorted by score descending. If `topK` is set, only that many results are returned.
 
-#### `const bytes = await index.serialize()`
+#### `const bytes = index.serialize()`
 
-Encode the index and return its serialized bytes as a `Promise<Uint8Array>`.
+Encode the index and return its serialized bytes as a `Uint8Array`.
 
-#### `await index.save(path)`
+#### `index.save(path)`
 
 Serialize the index and write it to `path`.
 
-#### `await index.load(pathOrBytes)`
+#### `index.load(pathOrBytes)`
 
-Restore index state from a file path or a `Uint8Array` produced by `serialize()`. The extractor must match the one used when the index was built (checked via a hash of `extractor.toString()`).
+Restore index state from a file path or a `Uint8Array` produced by `serialize()`. The supplied `extractorId` must match the ID stored in the index. Pocket Index does not inspect or hash the extractor function itself.
 
 #### `index.remove(id)`
 

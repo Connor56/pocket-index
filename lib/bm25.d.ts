@@ -2,6 +2,7 @@ import type { Doc, SearchResult } from './models.d.ts'
 
 export interface BM25IndexOptions {
   extractor: (text: string) => string[]
+  extractorId: string
   k1?: number
   b?: number
   fuzzyThreshold?: number
@@ -15,16 +16,15 @@ export interface BM25Doc {
 export declare class BM25Index {
   constructor(opts: BM25IndexOptions)
   add(documents: Doc[]): void
-  serialize(): Promise<Uint8Array>
-  save(path: string): Promise<void>
-  load(pathOrBytes: string | Uint8Array): Promise<void>
+  serialize(): Uint8Array
+  save(path: string): void
+  load(pathOrBytes: string | Uint8Array): void
   search(query: string, topK?: number | null): SearchResult[]
   remove(id: string): void
   list(): string[]
   contains(id: string): boolean
 
   _loadFromBinary(bytes: Uint8Array): void
-  _ensureExtractorHash(): Promise<void>
   _extractKeywords(text: string): string[]
   _buildKeywordMap(keywords: string[]): Record<string, number>
   _scoreDoc(bm25Doc: BM25Doc, keywords: string[]): number
@@ -32,10 +32,11 @@ export declare class BM25Index {
   _calculateIdf(): void
   _calculateAvgLength(): void
   _validateExtractor(extractor: (text: string) => string[]): void
+  _validateExtractorId(extractorId: string): void
   _validateDocument(doc: Doc): void
 
   extractor: (text: string) => string[]
-  extractorHash: string | null
+  extractorId: string
   version: number
   fuzzyThreshold: number
   k1: number

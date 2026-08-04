@@ -27,17 +27,10 @@ function basicExtractor(text) {
   return lowered
 }
 
-function differentExtractor(text) {
-  const split = text.split(' ')
-  const filtered = split.filter((x) => x != '')
-  const lowered = filtered.map((key) => key.toLowerCase())
-  const set = new Set(lowered)
-  return [...set]
-}
-
 function createIndex(overrides = {}) {
   return new BM25Index({
     extractor: basicExtractor,
+    extractorId: 'basic-extractor-v1',
     k1: 1.5,
     b: 0.75,
     ...overrides
@@ -82,7 +75,7 @@ test('add rejects invalid documents', (t) => {
   )
 })
 
-test('serialize the bm25 index into a binary format', async (t) => {
+test('serialize the bm25 index into a binary format', (t) => {
   const docId = 'test-1'
   const documents = [
     {
@@ -94,13 +87,13 @@ test('serialize the bm25 index into a binary format', async (t) => {
   const index = createIndex()
   index.add(documents)
 
-  const bytes = await index.serialize()
+  const bytes = index.serialize()
 
   t.is(bytes instanceof Uint8Array, true, 'Serialized index is a Uint8Array')
-  t.is(bytes.length, 274, 'Serialized byte length is correct')
+  t.is(bytes.length, 228, 'Serialized byte length is correct')
 })
 
-test('load restores index state from serialized bytes', async (t) => {
+test('load restores index state from serialized bytes', (t) => {
   const documents = [
     {
       content: 'This is a document I wish to add to the index.',
@@ -115,10 +108,10 @@ test('load restores index state from serialized bytes', async (t) => {
   const index = createIndex()
   index.add(documents)
 
-  const bytes = await index.serialize()
+  const bytes = index.serialize()
 
   const newIndex = createIndex()
-  await newIndex.load(bytes)
+  newIndex.load(bytes)
 
   t.alike(index.bm25Docs, newIndex.bm25Docs, 'Docs are the same')
   t.alike(index.avgLength, newIndex.avgLength, 'Avg length is the same')
@@ -126,11 +119,11 @@ test('load restores index state from serialized bytes', async (t) => {
   t.alike(index.b, newIndex.b, 'B is the same')
   t.alike(index.fuzzyThreshold, newIndex.fuzzyThreshold, 'Fuzzy threshold is the same')
   t.alike(index.keywordSet, newIndex.keywordSet, 'Keyword set is the same')
-  t.alike(index.extractorHash, newIndex.extractorHash, 'Extractor hash is the same')
+  t.is(index.extractorId, newIndex.extractorId, 'Extractor ID is the same')
   t.alike(index.version, newIndex.version, 'Version is the same')
 })
 
-test('load fails when the extractors are different', async (t) => {
+test('load fails when extractor IDs differ', (t) => {
   const documents = [
     {
       content: 'This is a document I wish to add to the index.',
@@ -141,20 +134,29 @@ test('load fails when the extractors are different', async (t) => {
   const index = createIndex()
   index.add(documents)
 
-  const bytes = await index.serialize()
+  const bytes = index.serialize()
 
-  const newIndex = createIndex({ extractor: differentExtractor })
-  await t.exception(
+  const newIndex = createIndex({ extractorId: 'different-extractor-v1' })
+  t.exception(
     () => newIndex.load(bytes),
-    /extractor hash mismatch/i,
-    'Different extractors cause a loading failure'
+    /extractor ID mismatch/i,
+    'Different extractor IDs cause a loading failure'
   )
 })
 
-test('load fails when neither path nor bytes are provided', async (t) => {
+test('constructor requires an extractor ID', (t) => {
+  t.exception(
+    // @ts-expect-error Test the runtime validation for JavaScript callers.
+    () => new BM25Index({ extractor: basicExtractor }),
+    /extractor ID is required/i,
+    'Missing extractor IDs are rejected'
+  )
+})
+
+test('load fails when neither path nor bytes are provided', (t) => {
   const index = createIndex()
 
-  await t.exception(() => index.load(42), /path or bytes/i, 'Invalid load input is rejected')
+  t.exception(() => index.load(42), /path or bytes/i, 'Invalid load input is rejected')
 })
 
 test('save and load round-trip through a file path', async (t) => {
@@ -168,10 +170,10 @@ test('save and load round-trip through a file path', async (t) => {
 
   const index = createIndex()
   index.add(documents)
-  await index.save(filePath)
+  index.save(filePath)
 
   const loaded = createIndex()
-  await loaded.load(filePath)
+  loaded.load(filePath)
 
   t.alike(loaded.list().sort(), ['cars', 'cats'])
   t.alike(loaded.bm25Docs, index.bm25Docs)

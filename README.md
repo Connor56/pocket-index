@@ -153,7 +153,7 @@ const results = await index.search('how do peers find each other?', 5)
 
 ### Serialize, save, and ship the index
 
-Both indexes can be written to a file or serialized into a `Uint8Array` you upload somewhere else (S3, R2, a CDN, etc.). Throughout this API and documentation, serialized binary values are named `bytes`.
+Both indexes can be written to a file or serialized into a `Uint8Array` you upload somewhere else (S3, R2, a CDN, etc.). It is typically a good idea to compress the bytes using gzip or the compression algorithm of your choice. Throughout this API and documentation, serialized binary values are named `bytes`.
 
 **CommonJS**
 
